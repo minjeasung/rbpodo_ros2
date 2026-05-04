@@ -7,8 +7,8 @@ base:
   axis:
     xyz: 0 0 1
   limit:
-    lower: -3.14
-    upper: 3.14
+    lower: -6.28
+    upper: 6.28
     effort: 10
     velocity: 3.14
 
