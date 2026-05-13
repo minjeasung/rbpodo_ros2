@@ -12,6 +12,7 @@ from moveit_configs_utils import MoveItConfigsBuilder
 
 robot_ip = LaunchConfiguration("robot_ip")
 use_fake_hardware = LaunchConfiguration("use_fake_hardware")
+use_isaac_sim = LaunchConfiguration("use_isaac_sim")
 fake_sensor_commands = LaunchConfiguration("fake_sensor_commands")
 model_id = LaunchConfiguration("model_id")
 cb_simulation = LaunchConfiguration("cb_simulation")
@@ -38,6 +39,13 @@ def generate_launch_description():
             "use_fake_hardware",
             default_value="true",
             description="True if there's no RB Cobot Control Box",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "use_isaac_sim",
+            default_value="false",
+            description="Use Isaac Sim hardware (joint_state_topic_hardware_interface)",
         )
     )
     declared_arguments.append(
@@ -71,6 +79,7 @@ def launch_setup(context, *args, **kwargs):
     mappings = {
         "robot_ip": robot_ip,
         "use_fake_hardware": use_fake_hardware,
+        "use_isaac_sim": use_isaac_sim,
         "fake_sensor_commands": fake_sensor_commands,
         "model_id": model_id,
         "cb_simulation": cb_simulation,
@@ -142,11 +151,17 @@ def launch_setup(context, *args, **kwargs):
         "config",
         "controllers.yaml",
     )
+    # jsb 가 /joint_states 발행 시 Isaac Sim 의 /joint_states (또는 실로봇 fk) 와 충돌.
+    # → /joint_states publish 는 controller_manager/joint_states 로 remap (sim_bringup 과 일치).
+    # use_isaac_sim 이 아닐 때도 무해 (구독자 없으면 그냥 unused topic).
     ros2_control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[moveit_config.robot_description, ros2_controllers_path],
         output="both",
+        remappings=[
+            ("joint_states", "controller_manager/joint_states"),
+        ],
     )
 
     joint_state_broadcaster_spawner = Node(
